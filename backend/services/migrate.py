@@ -1,13 +1,13 @@
 from sqlalchemy import select, delete
-from ..extensions import SessionLocal
-from ..models.table import Base, TestTable1, TestTable2
+from extensions import SessionLocal
+from models.table import Base, TestTable1, TestTable2
 
 def create_tables():
-    from ..extensions import engine
+    from extensions import engine
     Base.metadata.create_all(bind=engine)
 
 def drop_tables():
-    from ..extensions import engine
+    from extensions import engine
     Base.metadata.drop_all(bind=engine)
 
 def add_objects(objects):
@@ -86,6 +86,8 @@ def copy_table_data(source_model, target_model, condition=None):
             s.add_all(new_objs_batch)
             s.commit()
 
+'''测试函数'''
+
 def print_table_data(model):
     objects = get_all_objects(model)
     print(f"\n=== {model.__tablename__} 数据 ===")
@@ -105,5 +107,4 @@ def run_tests():
     print_table_data(TestTable1)
     print_table_data(TestTable2)
 
-if __name__ == '__main__':
-    run_tests()
+run_tests()
