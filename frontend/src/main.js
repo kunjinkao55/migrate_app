@@ -15,7 +15,7 @@ if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 const login = async () => {
   try {
     const res = await axios.post('http://localhost:5000/api/auth/login', form)
-    const data = res.data || {}          // 👈 兜底
+    const data = res.data || {}          //  兜底
     if (!data.access_token) {
       alert('登录失败：' + data.msg || '无 token')
       return
