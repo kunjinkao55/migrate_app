@@ -1,17 +1,14 @@
 # backend/migrate_ext/routes.py
-from flask import Blueprint, request, g, current_app
-from sqlalchemy import create_engine, inspect
+from flask import Blueprint, request, g
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session
 from flask_jwt_extended import jwt_required
 from functools import wraps
 from utils.db_conn import current_engine
-from sqlalchemy import inspect
+
 bp = Blueprint("migrate_ext", __name__, url_prefix="/api/migrate")
 
-
-
-
-# ---------------- 装饰器：每请求新建/复用连接 ----------------
+# ---------------- 装饰器：每请求新建/复用连接 (这个装饰器当前未被使用，但保留) ----------------
 def with_db_conn(f):
     """
     装饰器：
@@ -27,11 +24,11 @@ def with_db_conn(f):
             f"{data['host']}:{data['port']}/{data['db']}"
         )
         engine = create_engine(url, pool_pre_ping=True)
-        # 校验一次连接
         try:
-            engine.connect().close()
+            with engine.connect() as connection:
+                pass # 尝试建立连接
         except Exception as e:
-            return {"msg": str(e)}, 400
+            return {"msg": f"数据库连接失败: {e}"}, 400
         g.db = engine
         return f(*args, **kwargs)
     return wrapper
@@ -41,46 +38,65 @@ def with_db_conn(f):
 @jwt_required()
 @with_db_conn
 def connect():
-    # 连接成功后 g.db 已可用
     return {"msg": "连接成功"}
 
-# @bp.get("/tables")
-# @jwt_required()
-# @with_db_conn
-# def tables():
-#     insp = inspect(g.db)
-#     return {"tables": insp.get_table_names()}
 @bp.get("/tables")
 @jwt_required()
 def tables():
-    engine = current_engine()
-    insp = inspect(engine)
-    return {"tables": insp.get_table_names()}
+    try:
+        engine = current_engine()
+        insp = inspect(engine)
+        return {"tables": insp.get_table_names()}
+    except Exception as e:
+        return {"msg": f"获取表列表失败: {e}"}, 500
 
-# @bp.post("/table")
-# @jwt_required()
-# @with_db_conn
-# def migrate_table():
-#     data = request.json
-#     src, dst = data["source_table"], data["target_table"]
-
-#     # 简单演示：直接 INSERT … SELECT
-#     sql = f"INSERT INTO {dst} SELECT * FROM {src}"
-#     try:
-#         with Session(g.db) as s:
-#             s.exec_driver_sql(sql)
-#             s.commit()
-#     except Exception as e:
-#         return {"msg": str(e)}, 500
-#     return {"msg": "迁移完成"}
 
 @bp.post("/table")
 @jwt_required()
 def migrate_table():
-    engine = current_engine()
-    data = request.json
-    sql = f"INSERT INTO {data['target_table']} SELECT * FROM {data['source_table']}"
-    with Session(engine) as s:
-        s.exec_driver_sql(sql)
-        s.commit()
-    return {"msg": "迁移完成"}
+    try:
+        engine = current_engine()
+        data = request.json
+        source_table = data.get("source_table")
+        target_table = data.get("target_table")
+
+        if not source_table or not target_table:
+            return {"msg": "源表和目标表名不能为空"}, 400
+
+        with engine.connect() as connection:
+            insp = inspect(engine)
+            available_tables = insp.get_table_names()
+            
+            if source_table not in available_tables:
+                return {"msg": f"源表 '{source_table}' 不存在"}, 404
+            if target_table not in available_tables:
+                return {"msg": f"目标表 '{target_table}' 不存在"}, 404
+
+            # 获取源表和目标表的列信息
+            source_columns = [col['name'] for col in insp.get_columns(source_table)]
+            target_columns = [col['name'] for col in insp.get_columns(target_table)]
+            
+            # 获取主键列
+            pk_columns = set([col['name'] for col in insp.get_pk_constraint(target_table)['constrained_columns']])
+            
+            # 过滤掉主键列
+            columns = [col for col in source_columns if col not in pk_columns]
+            
+            if not columns:
+                return {"msg": "没有可迁移的列"}, 400
+                
+            # 构建不包含主键的INSERT语句
+            columns_str = ', '.join(f'`{col}`' for col in columns)
+            sql = text(f"INSERT INTO `{target_table}` ({columns_str}) SELECT {columns_str} FROM `{source_table}`")
+            
+            with Session(engine) as session:
+                try:
+                    session.execute(sql)
+                    session.commit()
+                    return {"msg": "迁移完成"}
+                except Exception as e:
+                    session.rollback()
+                    return {"msg": f"迁移过程中出错: {str(e)}"}, 500
+            
+    except Exception as e:
+        return {"msg": f"迁移失败: {str(e)}"}, 500
