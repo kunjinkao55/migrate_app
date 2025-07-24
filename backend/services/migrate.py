@@ -27,11 +27,24 @@ def update_object(model, oid, update_data):
                 setattr(obj, k, v)
             s.commit()
 
+# def delete_object(model, oid):
+#     with SessionLocal() as s:
+#         s.execute(delete(model).where(model.id == oid))
+#         s.commit()
+
+# 建议的修改
 def delete_object(model, oid):
     with SessionLocal() as s:
-        s.execute(delete(model).where(model.id == oid))
-        s.commit()
+        # 1. 先用 session.get() 获取要删除的对象，这个方法经过优化，会优先从会话缓存中查找
+        obj = s.get(model, oid)
+        if obj:
+            # 2. 如果对象存在，直接将其删除
+            s.delete(obj)
+            s.commit()
+        # else: 可以选择在这里打印一个日志，表明对象未找到
 
+# 原始版本 - 不使用懒加载
+"""
 def copy_table_data(source_model, target_model, condition=None):
     with SessionLocal() as s:
         q = select(source_model)
@@ -44,6 +57,34 @@ def copy_table_data(source_model, target_model, condition=None):
                     for r in rows]
         s.add_all(new_objs)
         s.commit()
+"""
+#lazy loading version
+def copy_table_data(source_model, target_model, condition=None):
+    with SessionLocal() as s:
+        q = select(source_model)
+        if condition is not None:
+            q = q.where(condition)
+        
+        # 在 select 语句上调用 execution_options，而不是在 session 上
+        stream = s.scalars(q.execution_options(stream_results=True))
+        
+        batch_size = 1000  # 每次处理1000条
+        new_objs_batch = []
+        for r in stream:
+            new_obj_data = {c.name: getattr(r, c.name)
+                            for c in source_model.__table__.columns
+                            if not c.primary_key}
+            new_objs_batch.append(target_model(**new_obj_data))
+            
+            if len(new_objs_batch) >= batch_size:
+                s.add_all(new_objs_batch)
+                s.commit() # 提交批次
+                new_objs_batch = [] # 清空批次
+        
+        # 提交最后一批不足batch_size的数据
+        if new_objs_batch:
+            s.add_all(new_objs_batch)
+            s.commit()
 
 def print_table_data(model):
     objects = get_all_objects(model)
