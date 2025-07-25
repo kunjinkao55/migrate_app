@@ -1,52 +1,48 @@
-from flask import Blueprint, request
-from sqlalchemy import create_engine
-from flask_jwt_extended import create_access_token
-from datetime import timedelta
-from models.user import User
-from extensions import SessionLocal
-import json
+# backend/auth_mysql.py
 
-bp = Blueprint("auth_mysql", __name__, url_prefix="/api/auth")
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token
+# 从 extensions 导入 db 对象
+from extensions import db
+from models.user import User
+
+bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @bp.post("/register")
 def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
+    """注册用户"""
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
     if not username or not password:
-        return {"msg": "用户名和密码不能为空"}, 400
-        
-    with SessionLocal() as session:
-        if session.query(User).filter_by(username=username).first():
-            return {"msg": "用户名已存在"}, 400
-            
-        user = User()
-        user.username = username
-        user.set_password(password)
-        session.add(user)
-        try:
-            session.commit()
-            return {"msg": "注册成功"}
-        except Exception as e:
-            session.rollback()
-            return {"msg": f"注册失败: {str(e)}"}, 500
+        return jsonify({"msg": "Missing username or password"}), 400
+
+    # 使用 db.session 来查询
+    if db.session.query(User).filter_by(username=username).first():
+        return jsonify({"msg": "Username already exists"}), 400
+
+    user = User(username=username)
+    user.set_password(password)
+
+    # 使用 db.session 添加和提交
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"msg": "User created successfully"}), 201
+
 
 @bp.post("/login")
 def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    
-    if not username or not password:
-        return {"msg": "用户名和密码不能为空"}, 400
-        
-    with SessionLocal() as session:
-        user = session.query(User).filter_by(username=username).first()
-        if user and user.check_password(password):
-            token = create_access_token(
-                identity=json.dumps({"user_id": user.id, "username": user.username}),
-                expires_delta=timedelta(days=1)
-            )
-            return {"access_token": token}
-        return {"msg": "用户名或密码错误"}, 401
+    """登录"""
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+
+    user = db.session.query(User).filter_by(username=username).first()
+
+    if user and user.check_password(password):
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token)
+
+    return jsonify({"msg": "Bad username or password"}), 401
