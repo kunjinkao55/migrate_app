@@ -53,7 +53,7 @@ async function handleLogin() {
   padding: 20px 30px;
   border: 1px solid #dcdfe6;
   border-radius: 10px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px 0 rgba(255, 255, 255, 0.1);
 }
 
 .login-button {
