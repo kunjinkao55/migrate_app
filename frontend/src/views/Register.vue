@@ -1,8 +1,7 @@
-<!-- src/views/Login.vue -->
 <template>
-  <div class="login">
-    <el-card class="login-card">
-      <h2>登录</h2>
+  <div class="register">
+    <el-card class="register-card">
+      <h2>注册</h2>
       <el-form :model="form" label-width="80px">
         <el-form-item label="用户名">
           <el-input v-model="form.username" />
@@ -11,8 +10,8 @@
           <el-input v-model="form.password" type="password" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="login">登录</el-button>
-          <el-button @click="$router.push('/register')">注册</el-button>
+          <el-button type="primary" @click="register">注册</el-button>
+          <el-button @click="$router.push('/login')">返回登录</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -28,30 +27,28 @@ import {ElMessage} from "element-plus";
 const router = useRouter();
 const form = reactive({username: "", password: ""});
 
-const login = async () => {
+const register = async () => {
   try {
-    const res = await axios.post("http://localhost:5000/api/auth/login", form);
-    if (res.access_token) {
-      localStorage.setItem("token", res.access_token);
-      axios.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${res.access_token}`;
-      router.push("/connect");
-    }
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/register",
+      form
+    );
+    ElMessage.success(res.msg || "注册成功");
+    router.push("/login");
   } catch (e) {
-    ElMessage.error(e.response?.data?.msg || "登录失败");
+    ElMessage.error(e.response?.data?.msg || "注册失败");
   }
 };
 </script>
 
 <style scoped>
-.login {
+.register {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
 }
-.login-card {
+.register-card {
   width: 400px;
 }
 </style>

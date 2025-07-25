@@ -106,5 +106,3 @@ def run_tests():
     print("✅ 测试完成")
     print_table_data(TestTable1)
     print_table_data(TestTable2)
-
-run_tests()
