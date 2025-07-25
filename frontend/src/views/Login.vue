@@ -36,6 +36,8 @@ async function handleLogin() {
       username: username.value,
       password: password.value,
     });
+    console.log('后端返回的完整响应:', response);
+    console.log('后端返回的 data 部分:', response.data);
     if (response.data.access_token) {
       localStorage.setItem('access_token', response.data.access_token);
       router.push('/connect');

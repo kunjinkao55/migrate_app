@@ -1,14 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
-import Connect from '../views/Connect.vue'
-import Migrate from '../views/Migrate.vue'
+import Login from '@/views/Login.vue'
+import Register from '@/views/Register.vue'
+import Connect from '@/views/Connect.vue'
+// 这里的 Migrate.vue 应该是已经包含了“推送”和“拉取”功能的新组件
+import Migrate from '@/views/Migrate.vue' 
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      // 默认路径，自动跳转到登录页
       path: '/',
       redirect: '/login'
     },
@@ -18,7 +18,6 @@ const router = createRouter({
       component: Login
     },
     {
-      // 确保注册路由存在且正确
       path: '/register',
       name: 'register',
       component: Register
@@ -27,31 +26,24 @@ const router = createRouter({
       path: '/connect',
       name: 'connect',
       component: Connect,
-      // 需要登录才能访问
       meta: { requiresAuth: true }
     },
     {
       path: '/migrate',
       name: 'migrate',
-      component: Migrate,
-      // 需要登录才能访问
+      component: Migrate, // 此路由指向重构后的迁移页面
       meta: { requiresAuth: true }
     }
   ]
 })
 
-// 添加全局路由守卫，实现登录保护
 router.beforeEach((to, from, next) => {
-  const loggedIn = localStorage.getItem('access_token');
-
-  // 检查目标路由是否需要认证
-  if (to.matched.some(record => record.meta.requiresAuth) && !loggedIn) {
-    // 如果需要认证但用户未登录，则跳转到登录页
-    next('/login');
+  const token = localStorage.getItem('token')
+  if (to.meta.requiresAuth && !token) {
+    next('/login')
   } else {
-    // 否则，正常放行
-    next();
+    next()
   }
-});
+})
 
 export default router
