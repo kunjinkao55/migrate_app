@@ -1,79 +1,79 @@
-<script setup>
-import { RouterView } from 'vue-router'
-</script>
-
 <template>
-  <RouterView />
+  <div id="app-container">
+    <header>
+      <div class="logo-wrapper">
+        <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="50" height="50" />
+        <span class="app-title">数据库迁移工具</span>
+      </div>
+      <nav>
+        <router-link to="/login">登录</router-link>
+        <router-link to="/register">注册</router-link>
+        <router-link to="/connect">连接数据库</router-link>
+        <router-link to="/migrate">开始迁移</router-link>
+      </nav>
+    </header>
+
+    <main>
+      <!-- 路由匹配到的组件将在这里渲染 -->
+      <RouterView />
+    </main>
+  </div>
 </template>
 
-<style>
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-</style>
+<script setup>
+import { RouterLink, RouterView } from 'vue-router'
+</script>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+#app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.logo-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.app-title {
+  margin-left: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
 }
 
 nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+  display: flex;
+  gap: 1.5rem;
 }
 
 nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+  text-decoration: none;
+  color: #007bff;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: color 0.2s;
 }
 
-nav a:first-of-type {
-  border: 0;
+nav a:hover,
+nav a.router-link-exact-active {
+  color: #0056b3;
+  text-decoration: underline;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+main {
+  flex-grow: 1;
+  padding: 2rem;
+  overflow-y: auto; /* 如果内容超长，允许滚动 */
 }
 </style>
