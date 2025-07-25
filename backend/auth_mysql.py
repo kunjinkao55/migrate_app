@@ -2,9 +2,10 @@
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
-# 从 extensions 导入 db 对象
 from extensions import db
 from models.user import User
+# 导入 sqlalchemy 的异常，以便更精确地捕获
+from sqlalchemy.exc import SQLAlchemyError
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -12,22 +13,35 @@ bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 def register():
     """注册用户"""
     data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Request body must be JSON"}), 400
+        
     username = data.get("username")
     password = data.get("password")
 
     if not username or not password:
         return jsonify({"msg": "Missing username or password"}), 400
 
-    # 使用 db.session 来查询
     if db.session.query(User).filter_by(username=username).first():
         return jsonify({"msg": "Username already exists"}), 400
 
     user = User(username=username)
     user.set_password(password)
-
-    # 使用 db.session 添加和提交
+    
     db.session.add(user)
-    db.session.commit()
+    
+    try:
+        db.session.commit()
+    except SQLAlchemyError as e:
+        # 捕获所有 SQLAlchemy 的错误
+        db.session.rollback() # 回滚事务
+        # 将具体的错误信息返回给前端
+        return jsonify({"msg": f"Database error: {str(e)}"}), 500
+    except Exception as e:
+        # 捕获其他未知错误
+        db.session.rollback()
+        return jsonify({"msg": f"An unexpected error occurred: {str(e)}"}), 500
+
 
     return jsonify({"msg": "User created successfully"}), 201
 
