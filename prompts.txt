@@ -8,3 +8,16 @@ frontend: npm run dev
 1.仅第一次确定甲方表格和乙方表格时需要手动选择，此后可以设置间隔时间，每隔间隔时间自动完成从甲方表格到乙方表格的数据同步
 2.规定向甲方开发乙方数据库的登陆权限，使得不再需要中转数据库，直接实现从甲方到乙方的数据迁移
 3.支持多线程传输，即允许同时存在甲A表->乙A表，甲B表->乙B表…………等多个线程，并且每个线程的间隔时间可以不相同
+
+虚拟环境操作指南：
+Windows系统：
+1. 创建虚拟环境：python -m venv venv
+2. 激活虚拟环境：.\venv\Scripts\activate
+3. 退出虚拟环境：deactivate
+
+Linux/Mac系统：
+1. 创建虚拟环境：python -m venv venv
+2. 激活虚拟环境：source venv/bin/activate
+3. 退出虚拟环境：deactivate
+
+注意：激活虚拟环境后，命令行前面会出现(venv)前缀
